@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tempomat</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        html,
+        body {
+            font-family: 'Montserrat', sans-serif !important;
+        }
+        
+        .header {
+            padding: 15px;
+        }
+        
+        .tachopane {
+            width: 50%;
+            float: left;
+            padding: 15px;
+        }
+        
+        .deviationpane {
+            width: 25%;
+            float: left;
+            padding: 15px;
+        }
+        
+        .statuspane {
+            font-size: 2.5em;
+            width: 25%;
+            float: right;
+            padding: 15px;
+        }
+        
+        body {
+            background-color: powderblue;
+        }
+        
+        h1 {
+            color: blue;
+        }
+        
+        p {
+            color: black;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Tempomat</h1>
+    </div>
+    <div class="tachopane">
+        <canvas id="tacho" width="400" height="400" data-val="0">No canvas</canvas>
+    </div>
+    <div class="deviationpane">
+        <canvas id="deviationpane" width="200" height="200" data-val="0">No canvas</canvas>
+    </div>
+    <script src="tacho.js"></script>
+
+ <script type="application/javascript">
+        let getMean = function(data) {
+            return data.reduce(function(a, b) {
+                return Number(a) + Number(b);
+            }) / data.length;
+        };
+        let getSD = function(data) {
+            let m = getMean(data);
+            return Math.sqrt(data.reduce(function(sq, n) {
+                return sq + Math.pow(n - m, 2);
+            }, 0) / (data.length - 1));
+        };
+        let toBPM = function(millis) {
+            let second = millis / 1000;
+            return 60 / second;
+        };
+        var bpmtacho = document.getElementById('tacho');
+        var deviationtacho = document.getElementById('deviationpane');
+        window.onload = function() {
+            tacho(bpmtacho, {
+                "title": "Beats Per Minute",
+                "max": 280,
+                "markInterval": 5,
+                "bigMarkInterval": 20,
+                "redLinePoint": 0.85,
+                "autoScale": false
+            });
+            tacho(deviationtacho, {
+                "title": "Beats Per Minute",
+                "max": 100,
+                "markInterval": 5,
+                "bigMarkInterval": 20,
+                "redLinePoint": 0.85,
+                "autoScale": false
+            });
+            document.getElementById("deviation").innerHTML = 0;
+            document.getElementById("tempo").innerHTML = 0;
+        };
+        var times = [0, 0, 0, 0];
+        var last = Date.now();
+        var index = 0;
+        document.body.onkeyup = function(e) {
+            if (e.keyCode === 32 || e.key === ' ') {
+                document.getElementById("tempo").innerHTML = Date.now() - last;
+                times[index] = Date.now() - last;
+                last = Date.now();
+                if (index < 3) {
+                    index++;
+                } else {
+                    index = 0;
+                }
+                var avg = getMean(times);
+                var bpm = toBPM(avg);
+                bpmtacho.setAttribute('data-val', bpm);
+                let sd = getSD(times);
+                document.getElementById("deviation").innerHTML = Math.min(Math.round(sd), 100);
+                document.getElementById("tempo").innerHTML = Math.round(bpm);
+                deviationtacho.setAttribute('data-val', Math.min(sd, 100));
+            }
+        }
+    </script>
+    <div class="statuspane">
+        <p>Tempo (BPM):</p>
+        <p id="tempo"></p>
+        <p>Standard Deviation (lower is better):</p>
+        <p id="deviation"></p>
+    </div>
+</body>
+
+</html>
